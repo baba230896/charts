@@ -185,3 +185,16 @@ affinity: {}
 helm2Legacy: false
 
 ip_version_support: "v4_only" # v4_only, v6_only are the only supported values at the moment
+
+# Credentials
+auth:
+  ysql:
+    user: ''
+    password: ''
+    database: ''
+  ycql:
+    user: ''
+    password: ''
+    keyspace: ''
+
+

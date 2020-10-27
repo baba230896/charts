@@ -339,6 +339,9 @@ spec:
           - "--use_client_to_server_encryption=true"
           - "--certs_for_client_dir=/opt/certs/yugabyte"
           {{- end }}
+          {{- if $root.Values.auth.ysql.password }}
+          - "--ysql_enable_auth=true"
+          {{- end }}
         {{ end }}
         ports:
           {{- range $label, $port := .ports }}
