@@ -10,7 +10,11 @@ metadata:
   labels:
     heritage: {{ $root.Values.helm2Legacy | ternary "Tiller" ($root.Release.Service | quote) }}
     release: {{ $root.Release.Name | quote }}
+    {{- if $root.Values.olderVersion }}
     chart: "{{ $root.Chart.Name }}"
+    {{- else }}
+    chart: "{{ include "yugabyte.chart" $root }}"
+    {{- end }}
     component: "{{ $root.Values.Component }}"
 type: Opaque
 data:
@@ -36,7 +40,11 @@ metadata:
     app: "{{ $service.label }}"
     heritage: {{ $root.Values.helm2Legacy | ternary "Tiller" ($root.Release.Service | quote) }}
     release: {{ $root.Release.Name | quote }}
+    {{- if $root.Values.olderVersion }}
     chart: "{{ $root.Chart.Name }}"
+    {{- else }}
+    chart: "{{ include "yugabyte.chart" $root }}"
+    {{- end }}
     component: "{{ $root.Values.Component }}"
 type: Opaque
 data:
@@ -57,12 +65,24 @@ data:
 apiVersion: v1
 kind: Service
 metadata:
+  {{- if $root.Values.olderVersion }}
   name: "{{ .name }}"
+  {{- else }}
+  name: {{ include "yugabyte.name" $root }}-{{ .name }}
+  {{- end }}
   labels:
+    {{- if $root.Values.olderVersion }}
     app: "{{ .label }}"
+    {{- else }}
+    app: "{{ include "yugabyte.name" $root }}-{{ .label }}"
+    {{- end }}
     heritage: {{ $root.Values.helm2Legacy | ternary "Tiller" ($root.Release.Service | quote) }}
     release: {{ $root.Release.Name | quote }}
+    {{- if $root.Values.olderVersion }}
     chart: "{{ $root.Chart.Name }}"
+    {{- else }}
+    chart: "{{ include "yugabyte.chart" $root }}"
+    {{- end }}
     component: "{{ $root.Values.Component }}"
     service-type: "headless"
 spec:
@@ -73,7 +93,11 @@ spec:
       port: {{ $port }}
     {{- end}}
   selector:
+    {{- if $root.Values.olderVersion }}
     app: "{{ .label }}"
+    {{- else }}
+    app: "{{ include "yugabyte.name" $root }}-{{ .label }}"
+    {{- end }}
 
 {{ if $root.Values.enableLoadBalancer }}
 {{- range $endpoint :=  $root.Values.serviceEndpoints }}
@@ -82,14 +106,26 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  {{- if $root.Values.olderVersion }}
   name: "{{ $endpoint.name }}"
+  {{- else }}
+  name: "{{ include "yugabyte.name" $root }}-{{ $endpoint.name }}"
+  {{- end }}
   annotations:
 {{ toYaml $endpoint.annotations | indent 4 }}
   labels:
+    {{- if $root.Values.olderVersion }}
     app: "{{ $endpoint.app }}"
+    {{- else }}
+    app: "{{ include "yugabyte.name" $root }}-{{ $endpoint.app }}"
+    {{- end }}
     heritage: {{ $root.Values.helm2Legacy | ternary "Tiller" ($root.Release.Service | quote) }}
     release: {{ $root.Release.Name | quote }}
+    {{- if $root.Values.olderVersion }}
     chart: "{{ $root.Chart.Name }}"
+    {{- else }}
+    chart: "{{ include "yugabyte.chart" $root }}"
+    {{- end }}
     component: "{{ $root.Values.Component }}"
 spec:
   {{ if eq $root.Release.Service "Tiller" }}
@@ -105,7 +141,11 @@ spec:
       port: {{ $port }}
     {{- end}}
   selector:
+    {{- if $root.Values.olderVersion }}
     app: "{{ $endpoint.app }}"
+    {{- else }}
+    app: "{{ include "yugabyte.name" $root }}-{{ $endpoint.app }}"
+    {{- end }}
   type: {{ $endpoint.type }}
 {{- end}}
 {{- end}}
@@ -115,16 +155,32 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
+  {{- if $root.Values.olderVersion }}
   name: "{{ .label }}"
+  {{- else }}
+  name: "{{ include "yugabyte.name" $root }}-{{ .label }}"
+  {{- end }}
   namespace: "{{ $root.Release.Namespace }}"
   labels:
+    {{- if $root.Values.olderVersion }}
     app: "{{ .label }}"
+    {{- else }}
+    app: "{{ include "yugabyte.name" $root }}-{{ .label }}"
+    {{- end }}
     heritage: {{ $root.Values.helm2Legacy | ternary "Tiller" ($root.Release.Service | quote) }}
     release: {{ $root.Release.Name | quote }}
+    {{- if $root.Values.olderVersion }}
     chart: "{{ $root.Chart.Name }}"
+    {{- else }}
+    chart: "{{ include "yugabyte.chart" $root }}"
+    {{- end }}
     component: "{{ $root.Values.Component }}"
 spec:
+  {{- if $root.Values.olderVersion }}
   serviceName: "{{ .name }}"
+  {{- else }}
+  serviceName: "{{ include "yugabyte.name" $root }}-{{ .name }}"
+  {{- end }}
   podManagementPolicy: {{ $root.Values.PodManagementPolicy }}
   {{ if eq .name "yb-masters" }}
   replicas: {{ $root.Values.replicas.master }}
@@ -136,13 +192,21 @@ spec:
   volumeClaimTemplates:
     {{- range $index := until (int ($storageInfo.count )) }}
     - metadata:
+        {{- if $root.Values.olderVersion }}
         name: datadir{{ $index }}
+        {{- else }}
+        name: {{ include "yugabyte.name" $root }}-datadir{{ $index }}
+        {{- end }}
         annotations:
           volume.beta.kubernetes.io/storage-class: {{ $storageInfo.storageClass }}
         labels:
           heritage: {{ $root.Values.helm2Legacy | ternary "Tiller" ($root.Release.Service | quote) }}
           release: {{ $root.Release.Name | quote }}
+          {{- if $root.Values.olderVersion }}
           chart: "{{ $root.Chart.Name }}"
+          {{- else}}
+          chart: "{{ include "yugabyte.chart" $root }}"
+          {{- end }}
           component: "{{ $root.Values.Component }}"
       spec:
         accessModes:
@@ -165,7 +229,11 @@ spec:
       {{ end }}
   selector:
     matchLabels:
+      {{- if $root.Values.olderVersion }}
       app: "{{ .label }}"
+      {{- else }}
+      app: "{{ include "yugabyte.name" $root }}-{{ .label }}"
+      {{- end }}
   template:
     metadata:
       {{ if $root.Values.networkAnnotation }}
@@ -173,10 +241,18 @@ spec:
 {{ toYaml $root.Values.networkAnnotation | indent 8}}
       {{ end }}
       labels:
+        {{- if $root.Values.olderVersion }}
         app: "{{ .label }}"
+        {{- else }}
+        app: "{{ include "yugabyte.name" $root }}-{{ .label }}"
+        {{- end }}
         heritage: {{ $root.Values.helm2Legacy | ternary "Tiller" ($root.Release.Service | quote) }}
         release: {{ $root.Release.Name | quote }}
+        {{- if $root.Values.olderVersion }}
         chart: "{{ $root.Chart.Name }}"
+        {{- else }}
+        chart: "{{ include "yugabyte.chart" $root }}"
+        {{- end }}
         component: "{{ $root.Values.Component }}"
     spec:
       {{- if $root.Values.Image.pullSecretName }}
@@ -208,10 +284,18 @@ spec:
                 - key: app
                   operator: In
                   values:
+                  {{- if $root.Values.olderVersion }}
                   - "{{ .label }}"
+                  {{- else }}
+                  - "{{ include "yugabyte.name" $root }}-{{ .label }}"
+                  {{- end }}
               topologyKey: kubernetes.io/hostname
       containers:
+      {{- if $root.Values.olderVersion }}
       - name: "{{ .label }}"
+      {{- else }}
+      - name: {{ include "yugabyte.name" $root }}-{{ .label }}
+      {{- end }}
         image: "{{ $root.Values.Image.repository }}:{{ $root.Values.Image.tag }}"
         imagePullPolicy: {{ $root.Values.Image.pullPolicy }}
         lifecycle:
@@ -354,7 +438,11 @@ spec:
         volumeMounts:
           {{ if not $root.Values.storage.ephemeral }}
           {{- range $index := until (int ($storageInfo.count)) }}
+          {{- if $root.Values.olderVersion }}
           - name: datadir{{ $index }}
+          {{- else }}
+          - name: {{ include "yugabyte.name" $root }}-datadir{{ $index }}
+          {{- end }}
             mountPath: /mnt/disk{{ $index }}
           {{- end }}
           {{- end }}
@@ -368,7 +456,11 @@ spec:
           {{- end }}
 
       {{ if not $root.Values.storage.ephemeral }}
+      {{- if $root.Values.olderVersion }}
       - name: yb-cleanup
+      {{- else }}
+      - name: {{ include "yugabyte.name" $root }}-yb-cleanup
+      {{- end }}
         image: busybox:1.31
         env:
         - name: USER
@@ -385,7 +477,11 @@ spec:
               sleep 86400;
             done
         volumeMounts:
+          {{- if $root.Values.olderVersion }}
           - name: datadir0
+          {{- else }}
+          - name: {{ include "yugabyte.name" $root }}-datadir0
+          {{- end }}
             mountPath: /home/yugabyte/
             subPath: yb-data
       {{- end }}
@@ -393,7 +489,11 @@ spec:
       volumes:
         {{ if not $root.Values.storage.ephemeral }}
         {{- range $index := until (int ($storageInfo.count)) }}
+        {{- if $root.Values.olderVersion }}
         - name: datadir{{ $index }}
+        {{- else }}
+        - name: {{ include "yugabyte.name" $root }}-datadir{{ $index }}
+        {{- end }}
           hostPath:
             path: /mnt/disks/ssd{{ $index }}
         {{- end }}
@@ -413,11 +513,19 @@ spec:
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
+  {{- if $root.Values.olderVersion }}
   name: {{ .label }}-pdb
+  {{- else }}
+  name: {{ include "yugabyte.name" $root }}-{{ .label }}-pdb
+  {{- end }}
 spec:
   maxUnavailable: {{ template "yugabyte.max_unavailable_for_quorum" $root }}
   selector:
     matchLabels:
+      {{- if $root.Values.olderVersion }}
       app: {{ .label }}
+      {{- else }}
+      app: "{{ include "yugabyte.name" $root }}-{{ .label }}"
+      {{- end }}
 {{- end }}
 {{- end }}

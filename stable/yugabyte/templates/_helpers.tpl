@@ -3,7 +3,7 @@
 Expand the name of the chart.
 */}}
 {{- define "yugabyte.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- default .Release.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
@@ -52,9 +52,15 @@ Create chart name and version as used by the chart label.
 {{- define "yugabyte.master_addresses" -}}
 {{- $master_replicas := .Values.replicas.master | int -}}
 {{- $domain_name := .Values.domainName -}}
+{{- $older_version := .Values.olderVersion -}}
+{{- $suffix := (include "yugabyte.name" .)  -}}
   {{- range .Values.Services }}
     {{- if eq .name "yb-masters" }}
+      {{- if $older_version }}
       {{range $index := until $master_replicas }}{{if ne $index 0}},{{end}}yb-master-{{ $index }}.yb-masters.$(NAMESPACE).svc.{{ $domain_name }}:7100{{end}}
+      {{- else }}
+      {{range $index := until $master_replicas }}{{if ne $index 0}},{{end}}{{ $suffix }}-yb-master-{{ $index }}.yb-masters.$(NAMESPACE).svc.{{ $domain_name }}:7100{{end}}
+      {{- end }}
     {{- end -}}
   {{- end -}}
 {{- end -}}
